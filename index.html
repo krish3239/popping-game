@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Relaxing Balloon Pop</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      background: linear-gradient(to top, #a8edea, #fed6e3);
+      transition: background 5s ease;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <audio id="popSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" preload="auto"></audio>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let balloons = [];
+    let particles = [];
+    const pastelColors = ['#f9c5d1','#fddde6','#c9e4de','#f6eac2','#e2f0cb','#c9c9ff','#ffe1e1'];
+
+    class Balloon {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = canvas.height + 50;
+        this.radius = 20 + Math.random() * 40;
+        this.color = pastelColors[Math.floor(Math.random()*pastelColors.length)];
+        this.speed = 0.5 + Math.random() * 1.5;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = 0.85;
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      update() {
+        this.y -= this.speed;
+        this.draw();
+      }
+    }
+
+    class Particle {
+      constructor(x,y,color) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.size = 2 + Math.random()*4;
+        this.speedX = (Math.random()-0.5) * 3;
+        this.speedY = (Math.random()-0.5) * 3;
+        this.alpha = 1;
+      }
+      draw() {
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.alpha -= 0.02;
+        this.draw();
+      }
+    }
+
+    function spawnBalloon() {
+      if (balloons.length < 20) {
+        balloons.push(new Balloon());
+      }
+    }
+
+    function animate() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      // Draw balloons
+      for (let i=0;i<balloons.length;i++) {
+        balloons[i].update();
+        if (balloons[i].y + balloons[i].radius < 0) {
+          balloons.splice(i,1);
+          i--;
+        }
+      }
+
+      // Draw particles
+      for (let i=0;i<particles.length;i++) {
+        particles[i].update();
+        if (particles[i].alpha <= 0) {
+          particles.splice(i,1);
+          i--;
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    canvas.addEventListener('click', (e)=>{
+      for (let i=0;i<balloons.length;i++) {
+        let dx = e.clientX - balloons[i].x;
+        let dy = e.clientY - balloons[i].y;
+        if (Math.sqrt(dx*dx+dy*dy) < balloons[i].radius) {
+          let color = balloons[i].color;
+          for (let j=0;j<20;j++) {
+            particles.push(new Particle(balloons[i].x, balloons[i].y, color));
+          }
+          balloons.splice(i,1);
+          document.getElementById('popSound').currentTime = 0;
+          document.getElementById('popSound').play();
+          break;
+        }
+      }
+    });
+
+    setInterval(spawnBalloon, 800);
+    animate();
+
+    // Handle resize
+    window.addEventListener('resize', ()=>{
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
+</body>
+</html>
